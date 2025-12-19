@@ -1,0 +1,25 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyd
+
+# Virtual envs
+.venv/
+venv/
+ENV/
+
+# Test/tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Node / VS Code extension ---
+**/node_modules/
+**/dist/
+
+# --- Secrets / env ---
+**/.env
+
+# --- Artifacts ---
+*.vsix
+*.log

@@ -4,6 +4,14 @@
   "description": "KI-Agent mit 15 MCP-Servern und ~140 Tools für VS Code",
   "version": "0.2.0",
   "publisher": "guido-mcp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/donapart/Guido_mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/donapart/Guido_mcp/issues"
+  },
+  "homepage": "https://github.com/donapart/Guido_mcp#readme",
   "engines": {
     "vscode": "^1.85.0"
   },

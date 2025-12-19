@@ -15,6 +15,20 @@
 2. VS Code: `Ctrl+Shift+P` → "Extensions: Install from VSIX..."
 3. Datei auswählen
 
+## VSIX lokal bauen (aus dem Repo)
+
+Voraussetzung: Node.js + npm.
+
+1. In `mcp-agent-workbench/extension` wechseln
+2. `npm run compile`
+3. `npm run package`
+
+Das erzeugt z.B. `mcp-agent-workbench-0.2.0.vsix` im selben Ordner.
+
+Optional (CLI):
+
+- `code --install-extension mcp-agent-workbench-0.2.0.vsix --force`
+
 ## Konfiguration
 
 `Ctrl+,` → Suche "MCP Agent":

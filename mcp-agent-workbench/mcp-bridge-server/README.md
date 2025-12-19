@@ -71,6 +71,18 @@ Der Bridge Server stellt **nur wenige Meta-Tools** bereit - die eigentlichen Ser
 - `shutdown_bridge()` - Ressourcen sauber schließen
 - `help()` - Hilfe anzeigen
 
+💡 `check_env()` enthält eine **Ampel-Übersicht** und eine **Next-Actions-Sektion**, welche Server mit der aktuellen Environment sofort nutzbar sind und was als nächstes zu konfigurieren ist.
+
+Optional kannst du `check_env()` um kurze Laufzeit-Checks erweitern (z.B. ob `docker`/`flutter` im PATH sind und ob `OLLAMA_HOST` erreichbar ist):
+
+```json
+{
+  "env": {
+    "MCP_CHECK_RUNTIME": "true"
+  }
+}
+```
+
 ### Schnellzugriff-Tools (immer verfügbar)
 - `read_file(path)` - Datei lesen
 - `write_file(path, content)` - Datei schreiben
@@ -115,6 +127,19 @@ Der Bridge Server stellt **nur wenige Meta-Tools** bereit - die eigentlichen Ser
 
 Mehrere Server (z.B. GitHub, IONOS, LLM Provider) erwarten Keys über Umgebungsvariablen.
 In diesem Repo ist dafür die Datei `agent/.env` vorgesehen (Vorlage: `agent/.env.example`).
+
+### Optional: `agent/.env` automatisch laden
+
+Die Bridge versucht beim Start **optional** `agent/.env` zu laden (nur wenn `python-dotenv` installiert ist).
+Standard ist **aktiviert**. Deaktivieren kannst du es über:
+
+```json
+{
+  "env": {
+    "MCP_LOAD_DOTENV": "false"
+  }
+}
+```
 
 ## 💬 Verwendung in Copilot Chat
 

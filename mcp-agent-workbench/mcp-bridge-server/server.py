@@ -15,10 +15,19 @@ import json
 import os
 import sys
 import time
+import shutil
+import textwrap
+import urllib.request
+import urllib.error
 try:
     import psutil  # type: ignore
 except Exception:  # pragma: no cover
     psutil = None
+
+try:
+    from dotenv import load_dotenv  # type: ignore
+except Exception:  # pragma: no cover
+    load_dotenv = None
 from pathlib import Path
 from typing import Any
 from contextlib import AsyncExitStack
@@ -30,6 +39,27 @@ START_TIME = time.time()
 # Pfade
 AGENT_DIR = Path(__file__).parent.parent / "agent"
 SERVERS_DIR = Path(__file__).parent.parent / "servers"
+
+
+def _maybe_load_agent_dotenv() -> None:
+    """Lädt optional `agent/.env` (falls vorhanden) ohne bestehende ENV zu überschreiben."""
+    if load_dotenv is None:
+        return
+    if os.environ.get("MCP_LOAD_DOTENV", "true").lower() not in {"1", "true", "yes"}:
+        return
+    env_path = AGENT_DIR / ".env"
+    if env_path.exists():
+        load_dotenv(dotenv_path=env_path, override=False)
+
+
+def _dotenv_status() -> dict[str, str]:
+    """Gibt einen kurzen Status zurück (ohne Secrets), ob/was geladen werden *kann*."""
+    env_path = AGENT_DIR / ".env"
+    return {
+        "agent_env_exists": "yes" if env_path.exists() else "no",
+        "python_dotenv": "yes" if load_dotenv is not None else "no",
+        "MCP_LOAD_DOTENV": os.environ.get("MCP_LOAD_DOTENV", "true"),
+    }
 
 # MCP SDK
 from mcp.server.fastmcp import FastMCP
@@ -83,6 +113,10 @@ class BridgeState:
         """Lädt Konfiguration OHNE Server zu verbinden"""
         if self.initialized:
             return
+
+        # Optional: .env laden (ohne bestehende ENV zu überschreiben)
+        # Damit können Keys zentral in `agent/.env` gepflegt werden.
+        _maybe_load_agent_dotenv()
             
         self.exit_stack = AsyncExitStack()
         await self.exit_stack.__aenter__()
@@ -350,12 +384,35 @@ async def check_env(server: str | None = None) -> str:
         server: Optionaler Server-Name (z.B. "github", "email", "ssh"). Wenn leer, werden alle geprüft.
     """
 
+    # Optional: Keys aus agent/.env sichtbar machen (ohne Server zu verbinden)
+    _maybe_load_agent_dotenv()
+
+    runtime_checks = os.environ.get("MCP_CHECK_RUNTIME", "false").lower() in {"1", "true", "yes"}
+
     def is_set(key: str) -> bool:
         val = os.environ.get(key)
         return bool(val and str(val).strip())
 
     def keys_with_prefix(prefix: str) -> list[str]:
         return sorted([k for k in os.environ.keys() if k.startswith(prefix)])
+
+    def ssh_hosts_status() -> tuple[bool, bool, list[str]]:
+        """(has_any, has_any_valid, details)"""
+        host_keys = keys_with_prefix("SSH_HOST_")
+        if not host_keys:
+            return False, False, []
+
+        details: list[str] = []
+        any_valid = False
+        for hk in host_keys:
+            suffix = hk[len("SSH_HOST_"):]
+            pw = f"SSH_PASSWORD_{suffix}"
+            key = f"SSH_KEY_{suffix}"
+            valid = is_set(pw) or is_set(key)
+            any_valid = any_valid or valid
+            details.append(f"{hk} → auth: {'✅' if valid else '❌'} ({pw} / {key})")
+
+        return True, any_valid, details
 
     checks: dict[str, dict[str, Any]] = {
         "llm": {
@@ -393,8 +450,15 @@ async def check_env(server: str | None = None) -> str:
             ]
         },
         "ssh": {
-            "summary": "Für jeden Host: SSH_HOST_<NAME>=user@host:port und entweder SSH_PASSWORD_<NAME> oder SSH_KEY_<NAME>.",
+            "summary": [
+                "Für jeden Host: SSH_HOST_<NAME>=user@host:port",
+                "Dann entweder SSH_PASSWORD_<NAME> oder SSH_KEY_<NAME>",
+            ],
             "prefixes": ["SSH_HOST_", "SSH_PASSWORD_", "SSH_KEY_"],
+        },
+        "paths": {
+            "summary": "Optionale Pfade/Defaults für Projekt-Scanner.",
+            "optional": ["GIT_PROJECTS_PATH", "PROJECTS_BASE_PATH", "FLUTTER_PROJECTS_PATH"],
         },
     }
 
@@ -406,13 +470,109 @@ async def check_env(server: str | None = None) -> str:
     lines: list[str] = ["# 🔐 Environment-Check"]
     lines.append("(Es werden **keine Werte** ausgegeben – nur ob Variablen gesetzt sind.)\n")
 
+    ds = _dotenv_status()
+    lines.append(
+        "- Dotenv: "
+        f"agent/.env exists={ds['agent_env_exists']}, "
+        f"python-dotenv={ds['python_dotenv']}, "
+        f"MCP_LOAD_DOTENV={ds['MCP_LOAD_DOTENV']}"
+    )
+    lines.append(f"- Runtime-Checks: {'on' if runtime_checks else 'off'} (Schalter: MCP_CHECK_RUNTIME=true)\n")
+
+    # Ampel-Übersicht (nur wenn alle Checks laufen)
+    if target is None:
+        # LLM
+        has_llm = is_set("OPENAI_API_KEY") or is_set("ANTHROPIC_API_KEY")
+
+        # Github/Ionos
+        has_github = is_set("GITHUB_TOKEN")
+        has_ionos = is_set("IONOS_API_KEY")
+
+        # Email: SMTP oder IMAP reicht
+        smtp_ok = all(is_set(k) for k in ["SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD"])
+        imap_ok = all(is_set(k) for k in ["IMAP_HOST", "IMAP_USER", "IMAP_PASSWORD"])
+        email_ok = smtp_ok or imap_ok
+
+        # SSH: mindestens ein Host + Auth
+        ssh_has_any, ssh_any_valid, ssh_details = ssh_hosts_status()
+
+        def lamp(ok: bool, warn: bool = False) -> str:
+            if ok:
+                return "🟢"
+            return "🟡" if warn else "🔴"
+
+        lines.append("## 🚦 Ampel-Übersicht (Workbench-Server einzeln)")
+
+        server_rows: list[tuple[str, str, str]] = []
+
+        # Server ohne Secrets
+        server_rows.append((lamp(True), "demo", "ok (keine Keys nötig)"))
+        server_rows.append((lamp(True), "filesystem", "ok (keine Keys nötig)"))
+        server_rows.append((lamp(True), "git", "ok (keine Keys nötig; optional: GIT_PROJECTS_PATH)"))
+        server_rows.append((lamp(True), "project-manager", "ok (keine Keys nötig; optional: PROJECTS_BASE_PATH)"))
+        server_rows.append((lamp(True), "web-search", "ok (DuckDuckGo; keine Keys nötig)"))
+        server_rows.append((lamp(True), "web-scraping", "ok (httpx/bs4; keine Keys nötig)"))
+        server_rows.append((lamp(True), "database", "ok (keine Keys nötig; Connection-Params werden beim Tool-Aufruf übergeben)"))
+
+        # LLM/Keys
+        server_rows.append((lamp(has_llm), "llm (Agent)", "OPENAI_API_KEY oder ANTHROPIC_API_KEY" if not has_llm else "ok"))
+        server_rows.append((lamp(has_github), "github", "GITHUB_TOKEN" if not has_github else "ok"))
+        server_rows.append((lamp(has_ionos), "ionos", "IONOS_API_KEY" if not has_ionos else "ok"))
+
+        # Email
+        if email_ok:
+            which = "SMTP" if smtp_ok else "IMAP"
+            server_rows.append(("🟢", "email", f"ok ({which} konfiguriert)"))
+        else:
+            server_rows.append(("🔴", "email", "SMTP_* oder IMAP_* konfigurieren"))
+
+        # SSH
+        if not ssh_has_any:
+            server_rows.append(("🔴", "ssh", "keine SSH_HOST_* gefunden"))
+        elif not ssh_any_valid:
+            server_rows.append(("🟡", "ssh", "Hosts gefunden, aber Auth fehlt (SSH_PASSWORD_* oder SSH_KEY_*)"))
+        else:
+            server_rows.append(("🟢", "ssh", "ok (mind. ein Host mit Auth)"))
+
+        # Runtime-Abhängigkeiten
+        # Docker: keine Keys, aber Docker-Daemon muss laufen/erreichbar sein
+        docker_cli = shutil.which("docker")
+        docker_icon = "🟢" if runtime_checks and docker_cli else "🟡"
+        docker_hint = "docker.exe im PATH gefunden" if (runtime_checks and docker_cli) else "keine Keys; Docker-Daemon muss verfügbar sein"
+        server_rows.append((docker_icon, "docker", docker_hint))
+
+        docker_remote_hint = "Remote muss erreichbar sein" if not is_set("DOCKER_REMOTE_HOST") else "DOCKER_REMOTE_HOST gesetzt; Remote muss erreichbar sein"
+        server_rows.append(("🟡", "docker-remote", f"keine Keys; {docker_remote_hint}"))
+
+        # Flutter: hängt vom SDK/Tools im PATH ab
+        flutter_cli = shutil.which("flutter")
+        flutter_icon = "🟢" if runtime_checks and flutter_cli else "🟡"
+        flutter_hint = "flutter im PATH gefunden" if (runtime_checks and flutter_cli) else "keine Keys; Flutter SDK im PATH nötig (optional: FLUTTER_PROJECTS_PATH)"
+        server_rows.append((flutter_icon, "flutter", flutter_hint))
+
+        # Ollama: hängt von OLLAMA_HOST ab (default existiert, aber Erreichbarkeit unklar)
+        ollama_host_set = is_set("OLLAMA_HOST")
+        server_rows.append(("🟡", "ollama", "OLLAMA_HOST gesetzt" if ollama_host_set else "OLLAMA_HOST optional; Server muss erreichbar sein"))
+
+        for icon, srv, hint in server_rows:
+            lines.append(f"- {icon} **{srv}**: {hint}")
+
+        lines.append("")
+
     to_run = [target] if target else list(checks.keys())
 
     for name in to_run:
         cfg = checks[name]
         lines.append(f"## {name}")
         if cfg.get("summary"):
-            lines.append(f"- Hinweis: {cfg['summary']}")
+            # Mehrzeilige Hinweise sauber ausgeben
+            summary = cfg["summary"]
+            if isinstance(summary, list):
+                lines.append("- Hinweis:")
+                for s in summary:
+                    lines.append(f"  - {s}")
+            else:
+                lines.append(f"- Hinweis: {summary}")
 
         # any_of (z.B. LLM Provider)
         if "any_of" in cfg:
@@ -435,14 +595,24 @@ async def check_env(server: str | None = None) -> str:
                 lines.append(f"  - {k}: {'✅ gesetzt' if is_set(k) else '❌ fehlt'}")
 
         # groups (email)
-        for group in cfg.get("groups", []) or []:
-            lines.append(f"- {group['name']}")
-            req = group.get("required", [])
-            opt = group.get("optional", [])
-            for k in req:
-                lines.append(f"  - {k}: {'✅ gesetzt' if is_set(k) else '❌ fehlt'}")
-            for k in opt:
-                lines.append(f"  - {k} (optional): {'✅ gesetzt' if is_set(k) else '—'}")
+        groups = cfg.get("groups", []) or []
+        if groups:
+            group_ok_any = False
+            for group in groups:
+                lines.append(f"- {group['name']}")
+                req = group.get("required", [])
+                opt = group.get("optional", [])
+                ok = all(is_set(k) for k in req)
+                group_ok_any = group_ok_any or ok
+                lines.append(f"  - Status: {'✅ ok' if ok else '❌ unvollständig'}")
+                for k in req:
+                    lines.append(f"  - {k}: {'✅ gesetzt' if is_set(k) else '❌ fehlt'}")
+                for k in opt:
+                    lines.append(f"  - {k} (optional): {'✅ gesetzt' if is_set(k) else '—'}")
+
+            lines.append(f"- Required (any-of groups): {'✅ ok' if group_ok_any else '❌ fehlt'}")
+            if not group_ok_any:
+                lines.append("  - Konfiguriere mindestens SMTP_* oder IMAP_*")
 
         # optional
         optional = cfg.get("optional", [])
@@ -466,7 +636,138 @@ async def check_env(server: str | None = None) -> str:
                 else:
                     lines.append(f"  - {pfx}: ❌ keine")
 
+            ssh_has_any, ssh_any_valid, ssh_details = ssh_hosts_status()
+            lines.append(f"- SSH Hosts: {'✅ vorhanden' if ssh_has_any else '❌ keine'}")
+            if ssh_has_any:
+                lines.append(f"- SSH Auth: {'✅ ok' if ssh_any_valid else '❌ fehlt (für alle Hosts)'}")
+                for d in ssh_details[:25]:
+                    lines.append(f"  - {d}")
+                if len(ssh_details) > 25:
+                    lines.append(f"  - … und {len(ssh_details) - 25} weitere")
+
+        # Optionale Runtime-Checks (ohne Secrets) pro Bereich
+        if runtime_checks and name in {"docker-remote", "ollama", "paths"}:
+            if name == "ollama":
+                host = os.environ.get("OLLAMA_HOST", "").strip() or "http://192.168.0.27:11434"
+                url = host.rstrip("/") + "/api/version"
+                try:
+                    with urllib.request.urlopen(url, timeout=2) as resp:
+                        ok = 200 <= resp.status < 300
+                    lines.append(f"- Runtime: {'✅ erreichbar' if ok else '❌ HTTP-Fehler'} ({url})")
+                except Exception as e:
+                    lines.append(f"- Runtime: 🟡 nicht erreichbar ({url})")
+
+            if name == "docker-remote":
+                docker_cli = shutil.which("docker")
+                lines.append(f"- Runtime: docker im PATH: {'✅' if docker_cli else '🟡 nein/unklar'}")
+
+            if name == "paths":
+                flutter_cli = shutil.which("flutter")
+                docker_cli = shutil.which("docker")
+                lines.append(f"- Runtime: flutter im PATH: {'✅' if flutter_cli else '🟡 nein/unklar'}")
+                lines.append(f"- Runtime: docker im PATH: {'✅' if docker_cli else '🟡 nein/unklar'}")
+
         lines.append("")
+
+    # ------------------------------------------------------------
+    # Next Actions (nur sinnvoll im Gesamtmodus)
+    # ------------------------------------------------------------
+    if target is None:
+        next_actions: list[str] = []
+
+        def add_action(text: str) -> None:
+            # Sauber umbrechen, damit die Ausgabe in Output/Terminal gut lesbar bleibt.
+            wrapped = textwrap.fill(
+                text,
+                width=96,
+                subsequent_indent="  ",
+                break_long_words=False,
+                break_on_hyphens=False,
+            )
+            next_actions.append(wrapped)
+
+        # LLM
+        if not (is_set("OPENAI_API_KEY") or is_set("ANTHROPIC_API_KEY")):
+            add_action(
+                "LLM aktivieren: In `mcp-agent-workbench/agent/.env` entweder `OPENAI_API_KEY` oder "
+                "`ANTHROPIC_API_KEY` setzen (danach VS Code neu laden)."
+            )
+
+        # GitHub
+        if not is_set("GITHUB_TOKEN"):
+            add_action(
+                "GitHub-Server aktivieren: `GITHUB_TOKEN` in `agent/.env` setzen (Scope minimal halten; "
+                "für private Repos typischerweise `repo`)."
+            )
+
+        # IONOS
+        if not is_set("IONOS_API_KEY"):
+            add_action(
+                "IONOS-Server aktivieren: `IONOS_API_KEY` in `agent/.env` setzen (Format meist `prefix.secret`)."
+            )
+
+        # Email
+        smtp_ok = all(is_set(k) for k in ["SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD"])
+        imap_ok = all(is_set(k) for k in ["IMAP_HOST", "IMAP_USER", "IMAP_PASSWORD"])
+        if not (smtp_ok or imap_ok):
+            add_action(
+                "Email-Server aktivieren: entweder SMTP (`SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`) oder IMAP "
+                "(`IMAP_HOST`, `IMAP_USER`, `IMAP_PASSWORD`) konfigurieren. Optional: Ports/TLS/SSL setzen."
+            )
+
+        # SSH
+        ssh_has_any, ssh_any_valid, _ = ssh_hosts_status()
+        if not ssh_has_any:
+            add_action(
+                "SSH-Server aktivieren: Mindestens einen Host konfigurieren, z.B. `SSH_HOST_PROD=user@host:22` "
+                "und dazu `SSH_PASSWORD_PROD=...` oder `SSH_KEY_PROD=C:\\Pfad\\zum\\key`."
+            )
+        elif not ssh_any_valid:
+            add_action(
+                "SSH-Server fixen: SSH_HOST_* gefunden, aber für die Hosts fehlt Auth. Setze pro Host "
+                "`SSH_PASSWORD_<NAME>` oder `SSH_KEY_<NAME>`."
+            )
+
+        # Docker/Flutter/Ollama Runtime
+        if runtime_checks:
+            if not shutil.which("docker"):
+                add_action(
+                    "Docker nutzen: `docker` ist nicht im PATH gefunden. Docker Desktop/CLI installieren bzw. PATH prüfen."
+                )
+            if not shutil.which("flutter"):
+                add_action(
+                    "Flutter nutzen: `flutter` ist nicht im PATH gefunden. Flutter SDK installieren bzw. PATH prüfen."
+                )
+            # Ollama Reachability wird oben pro Check ausgegeben; hier nur generischer Tipp
+            if is_set("OLLAMA_HOST"):
+                add_action(
+                    "Ollama nutzen: Wenn der Status 'nicht erreichbar' ist, prüfe ob der Host läuft und Firewall/Netz stimmt (URL: `OLLAMA_HOST`)."
+                )
+            else:
+                add_action(
+                    "Ollama optional: Setze `OLLAMA_HOST` in `agent/.env` (z.B. `http://localhost:11434`), wenn du lokale/remote Ollama-Modelle nutzen willst."
+                )
+
+        # Security reminder if dotenv file exists
+        if (AGENT_DIR / ".env").exists():
+            add_action(
+                "Security: Falls jemals API-Keys im Klartext im Workspace standen, die Keys bitte rotieren/revoken und neue eintragen."
+            )
+
+        if next_actions:
+            lines.append("## ✅ Next Actions")
+            for item in next_actions:
+                # item ist bereits umbrochen; wir hängen nur das Bullet davor.
+                # Folgezeilen sind durch add_action() bereits eingerückt.
+                parts = item.splitlines() or [item]
+                lines.append(f"- {parts[0]}")
+                for cont in parts[1:]:
+                    lines.append(f"  {cont}")
+            lines.append("")
+        else:
+            lines.append("## ✅ Next Actions")
+            lines.append("- Sieht gut aus: Keine offensichtlichen fehlenden ENV-Konfigurationen erkannt.")
+            lines.append("")
 
     lines.append("---")
     lines.append("💡 Tipp: Keys in `mcp-agent-workbench/agent/.env` pflegen (Vorlage: `agent/.env.example`).")
