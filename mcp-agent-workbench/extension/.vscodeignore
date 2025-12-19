@@ -1,0 +1,30 @@
+# Entwicklungsdateien
+.vscode/**
+src/**
+**/*.ts
+**/*.map
+tsconfig.json
+.gitignore
+.eslintrc*
+*.log
+
+# Node Modules - nur Produktion
+node_modules/.bin/**
+node_modules/**/test/**
+node_modules/**/tests/**
+node_modules/**/*.md
+node_modules/**/LICENSE*
+node_modules/**/license*
+node_modules/**/CHANGELOG*
+node_modules/**/.github/**
+node_modules/**/docs/**
+node_modules/**/*.d.ts
+node_modules/**/.npmignore
+node_modules/**/*.yml
+node_modules/**/*.yaml
+!node_modules/@types/**/*.d.ts
+
+# Andere
+*.vsix
+.DS_Store
+Thumbs.db

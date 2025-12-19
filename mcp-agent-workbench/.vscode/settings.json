@@ -1,0 +1,15 @@
+{
+  "mcp": {
+    "servers": {
+      "workbench": {
+        "command": "python",
+        "args": ["d:/Guido_mcp/mcp-agent-workbench/mcp-bridge-server/server.py"],
+        "env": {
+          "MCP_BRIDGE_SERVERS": "demo,filesystem,git,project-manager,flutter,ollama"
+        }
+      }
+    }
+  },
+  "mcpAgent.provider": "openai",
+  "mcpAgent.activeServers": ["demo", "filesystem", "git", "project-manager"]
+}

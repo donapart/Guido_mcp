@@ -1,0 +1,471 @@
+{
+  "name": "mcp-agent-workbench",
+  "displayName": "MCP Agent Workbench",
+  "description": "KI-Agent mit 15 MCP-Servern und ~140 Tools für VS Code",
+  "version": "0.2.0",
+  "publisher": "guido-mcp",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning",
+    "Programming Languages",
+    "Chat"
+  ],
+  "keywords": [
+    "mcp",
+    "agent",
+    "llm",
+    "ai",
+    "model-context-protocol",
+    "openai",
+    "anthropic",
+    "gpt-4",
+    "claude",
+    "ollama",
+    "gemini"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "mcpAgent.startSession",
+        "title": "MCP Agent: Chat öffnen",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "mcpAgent.showStatus",
+        "title": "MCP Agent: Server-Status anzeigen",
+        "icon": "$(info)"
+      },
+      {
+        "command": "mcpAgent.sendSelection",
+        "title": "MCP Agent: Selektion analysieren",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "mcpAgent.configureServers",
+        "title": "MCP Agent: Server konfigurieren",
+        "icon": "$(server)"
+      },
+      {
+        "command": "mcpAgent.selectModel",
+        "title": "MCP Agent: Modell wählen",
+        "icon": "$(symbol-misc)"
+      },
+      {
+        "command": "mcpAgent.openSettings",
+        "title": "MCP Agent: Einstellungen öffnen",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "mcpAgent.clearHistory",
+        "title": "MCP Agent: Chat-Verlauf löschen",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "mcpAgent.exportChat",
+        "title": "MCP Agent: Chat exportieren",
+        "icon": "$(export)"
+      },
+      {
+        "command": "mcpAgent.restartServers",
+        "title": "MCP Agent: Server neustarten",
+        "icon": "$(refresh)"
+      }
+    ],
+    "configuration": {
+      "title": "MCP Agent Workbench",
+      "properties": {
+        "mcpAgent.provider": {
+          "type": "string",
+          "enum": ["openai", "anthropic", "ollama", "azure", "google"],
+          "enumDescriptions": [
+            "OpenAI (GPT-4o, GPT-4, GPT-3.5)",
+            "Anthropic (Claude 3.5, Claude 3)",
+            "Ollama (Lokale Modelle)",
+            "Azure OpenAI Service",
+            "Google AI (Gemini)"
+          ],
+          "default": "openai",
+          "description": "KI-Provider auswählen",
+          "order": 1
+        },
+        "mcpAgent.model": {
+          "type": "string",
+          "enum": [
+            "gpt-4.5-preview",
+            "gpt-4o",
+            "gpt-4o-mini",
+            "gpt-4-turbo",
+            "gpt-4",
+            "gpt-3.5-turbo",
+            "o3",
+            "o3-mini",
+            "o1",
+            "o1-pro",
+            "o1-preview",
+            "o1-mini",
+            "claude-sonnet-4-20250514",
+            "claude-opus-4-20250514",
+            "claude-3-7-sonnet-20250219",
+            "claude-3-5-sonnet-20241022",
+            "claude-3-5-haiku-20241022",
+            "claude-3-opus-20240229",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-thinking",
+            "gemini-2.5-pro",
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+            "llama3.3",
+            "llama3.2",
+            "llama3.1",
+            "codellama",
+            "mistral",
+            "mixtral",
+            "qwen2.5-coder",
+            "qwen2.5",
+            "deepseek-coder-v2",
+            "deepseek-r1",
+            "phi-4",
+            "gemma2",
+            "starcoder2"
+          ],
+          "enumDescriptions": [
+            "GPT-4.5 Preview - Neuestes OpenAI Modell",
+            "GPT-4o - Schnellstes GPT-4 Modell (empfohlen)",
+            "GPT-4o Mini - Günstig & schnell",
+            "GPT-4 Turbo - 128K Kontext",
+            "GPT-4 - Original GPT-4",
+            "GPT-3.5 Turbo - Schnell & günstig",
+            "o3 - Stärkstes Reasoning Modell",
+            "o3-mini - Kompaktes o3",
+            "o1 - Advanced Reasoning",
+            "o1-pro - Maximales Reasoning",
+            "o1-preview - Reasoning Preview",
+            "o1-mini - Kompaktes Reasoning",
+            "Claude Sonnet 4 - Neuestes Claude Sonnet (empfohlen)",
+            "Claude Opus 4 - Stärkstes Claude Modell",
+            "Claude 3.7 Sonnet - Extended Thinking",
+            "Claude 3.5 Sonnet - Ausgewogen",
+            "Claude 3.5 Haiku - Schnell",
+            "Claude 3 Opus - Leistungsstark",
+            "Gemini 2.0 Flash - Neuestes Google Modell",
+            "Gemini 2.0 Flash Thinking - Mit Reasoning",
+            "Gemini 2.5 Pro - Stärkstes Google Modell",
+            "Gemini 1.5 Pro - 1M Kontext",
+            "Gemini 1.5 Flash - Schnell",
+            "Llama 3.3 - Meta's neuestes (70B)",
+            "Llama 3.2 - Meta Llama (Ollama)",
+            "Llama 3.1 - Meta Llama (Ollama)",
+            "CodeLlama - Code-spezialisiert (Ollama)",
+            "Mistral - Open Source (Ollama)",
+            "Mixtral - MoE Modell (Ollama)",
+            "Qwen 2.5 Coder - Code-Modell (Ollama)",
+            "Qwen 2.5 - Alibaba's bestes Modell",
+            "DeepSeek Coder V2 - Coding (Ollama)",
+            "DeepSeek R1 - Reasoning Modell",
+            "Phi-4 - Microsoft's neuestes",
+            "Gemma 2 - Google Open Source",
+            "StarCoder 2 - Code-Modell"
+          ],
+          "default": "gpt-4o",
+          "description": "KI-Modell für den Agent",
+          "order": 2
+        },
+        "mcpAgent.openaiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenAI API Key (von platform.openai.com)",
+          "order": 10
+        },
+        "mcpAgent.anthropicApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Anthropic API Key (von console.anthropic.com)",
+          "order": 11
+        },
+        "mcpAgent.googleApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Google AI API Key (von ai.google.dev)",
+          "order": 12
+        },
+        "mcpAgent.azureEndpoint": {
+          "type": "string",
+          "default": "",
+          "description": "Azure OpenAI Endpoint URL",
+          "order": 13
+        },
+        "mcpAgent.azureApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Azure OpenAI API Key",
+          "order": 14
+        },
+        "mcpAgent.azureDeployment": {
+          "type": "string",
+          "default": "",
+          "description": "Azure OpenAI Deployment Name",
+          "order": 15
+        },
+        "mcpAgent.ollamaEndpoint": {
+          "type": "string",
+          "default": "http://localhost:11434",
+          "description": "Ollama Server Endpoint",
+          "order": 16
+        },
+        "mcpAgent.temperature": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Kreativität (0=deterministisch, 2=sehr kreativ)",
+          "order": 20
+        },
+        "mcpAgent.maxTokens": {
+          "type": "number",
+          "default": 4096,
+          "minimum": 256,
+          "maximum": 128000,
+          "description": "Maximale Antwortlänge in Tokens",
+          "order": 21
+        },
+        "mcpAgent.topP": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Top-P Sampling (Nucleus Sampling)",
+          "order": 22
+        },
+        "mcpAgent.frequencyPenalty": {
+          "type": "number",
+          "default": 0,
+          "minimum": -2,
+          "maximum": 2,
+          "description": "Frequenz-Penalty (reduziert Wiederholungen)",
+          "order": 23
+        },
+        "mcpAgent.presencePenalty": {
+          "type": "number",
+          "default": 0,
+          "minimum": -2,
+          "maximum": 2,
+          "description": "Präsenz-Penalty (fördert neue Themen)",
+          "order": 24
+        },
+        "mcpAgent.systemPrompt": {
+          "type": "string",
+          "default": "",
+          "editPresentation": "multilineText",
+          "description": "Optionaler System-Prompt (leer = Standard)",
+          "order": 25
+        },
+        "mcpAgent.serversConfigPath": {
+          "type": "string",
+          "default": "",
+          "description": "Pfad zur mcp-servers.json (leer = auto-detect)",
+          "order": 30
+        },
+        "mcpAgent.activeServers": {
+          "type": "array",
+          "items": { 
+            "type": "string",
+            "enum": [
+              "demo",
+              "filesystem",
+              "git",
+              "project-manager",
+              "flutter",
+              "ollama",
+              "docker",
+              "docker-remote",
+              "github",
+              "database",
+              "web-search",
+              "web-scraping",
+              "email",
+              "ionos",
+              "ssh"
+            ]
+          },
+          "default": ["demo", "filesystem", "git", "project-manager"],
+          "description": "Aktive MCP-Server",
+          "order": 31
+        },
+        "mcpAgent.autoConnectServers": {
+          "type": "boolean",
+          "default": true,
+          "description": "Server beim Start automatisch verbinden",
+          "order": 32
+        },
+        "mcpAgent.serverTimeout": {
+          "type": "number",
+          "default": 30000,
+          "minimum": 5000,
+          "maximum": 120000,
+          "description": "Server-Timeout in Millisekunden",
+          "order": 33
+        },
+        "mcpAgent.maxToolCalls": {
+          "type": "number",
+          "default": 50,
+          "minimum": 1,
+          "maximum": 200,
+          "description": "Maximale Tool-Aufrufe pro Anfrage",
+          "order": 40
+        },
+        "mcpAgent.confirmDangerousTools": {
+          "type": "boolean",
+          "default": true,
+          "description": "Bestätigung für gefährliche Tools (Schreiben, Löschen)",
+          "order": 41
+        },
+        "mcpAgent.allowedDirectories": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Erlaubte Verzeichnisse für Dateizugriff (leer = alle)",
+          "order": 42
+        },
+        "mcpAgent.blockedTools": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Blockierte Tools (z.B. 'filesystem_delete_file')",
+          "order": 43
+        },
+        "mcpAgent.historySize": {
+          "type": "number",
+          "default": 100,
+          "minimum": 10,
+          "maximum": 1000,
+          "description": "Maximale Chat-Historie (Nachrichten)",
+          "order": 50
+        },
+        "mcpAgent.saveHistory": {
+          "type": "boolean",
+          "default": true,
+          "description": "Chat-Verlauf speichern",
+          "order": 51
+        },
+        "mcpAgent.showToolCalls": {
+          "type": "boolean",
+          "default": true,
+          "description": "Tool-Aufrufe im Chat anzeigen",
+          "order": 52
+        },
+        "mcpAgent.showThinking": {
+          "type": "boolean",
+          "default": false,
+          "description": "Agent-Denkprozess anzeigen (wenn verfügbar)",
+          "order": 53
+        },
+        "mcpAgent.streamResponses": {
+          "type": "boolean",
+          "default": true,
+          "description": "Antworten streamen (Echtzeit-Ausgabe)",
+          "order": 54
+        },
+        "mcpAgent.codeBlockTheme": {
+          "type": "string",
+          "enum": ["auto", "dark", "light", "monokai", "github"],
+          "default": "auto",
+          "description": "Code-Block Farbschema",
+          "order": 55
+        },
+        "mcpAgent.fontSize": {
+          "type": "number",
+          "default": 14,
+          "minimum": 10,
+          "maximum": 24,
+          "description": "Chat-Schriftgröße in Pixeln",
+          "order": 56
+        },
+        "mcpAgent.debug": {
+          "type": "boolean",
+          "default": false,
+          "description": "Debug-Modus aktivieren (Logs in Output)",
+          "order": 99
+        },
+        "mcpAgent.telemetry": {
+          "type": "boolean",
+          "default": false,
+          "description": "Anonyme Nutzungsstatistiken senden",
+          "order": 100
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "mcpAgent.startSession",
+        "key": "ctrl+shift+m",
+        "mac": "cmd+shift+m"
+      },
+      {
+        "command": "mcpAgent.sendSelection",
+        "key": "ctrl+shift+enter",
+        "mac": "cmd+shift+enter",
+        "when": "editorHasSelection"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "mcpAgent.sendSelection",
+          "when": "editorHasSelection",
+          "group": "1_modification"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "mcpAgent.startSession",
+          "group": "navigation"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "mcp-agent",
+          "title": "MCP Agent",
+          "icon": "$(robot)"
+        }
+      ]
+    },
+    "views": {
+      "mcp-agent": [
+        {
+          "type": "webview",
+          "id": "mcpAgent.chatView",
+          "name": "Chat"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@anthropic-ai/sdk": "^0.30.0",
+    "openai": "^4.70.0"
+  }
+}

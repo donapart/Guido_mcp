@@ -1,0 +1,20 @@
+{
+  "servers": {
+    "demo": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["servers/demo-server/server.py"],
+      "description": "Demo-Server mit Basis-Tools"
+    },
+    "filesystem": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["servers/filesystem-server/server.py"],
+      "description": "Dateisystem-Operationen"
+    }
+  },
+  "defaults": {
+    "activeServers": ["demo"],
+    "timeout": 30000
+  }
+}

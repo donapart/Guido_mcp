@@ -1,0 +1,6 @@
+# MCP Bridge Server - Requirements
+# Hinweis: Die Bridge nutzt FastMCP aus dem `mcp` Paket.
+mcp>=1.25.0
+
+# Optional (aber empfohlen) für get_system_status():
+psutil>=5.9.0

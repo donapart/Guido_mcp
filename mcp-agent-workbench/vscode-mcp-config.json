@@ -1,0 +1,82 @@
+{
+  "mcp": {
+    "servers": {
+      "workbench-bridge": {
+        "command": "python",
+        "args": ["d:/Guido_mcp/mcp-agent-workbench/mcp-bridge-server/server.py"],
+        "env": {
+          "MCP_BRIDGE_SERVERS": "demo,filesystem,git,project-manager,flutter,ollama,docker,database,web-search,web-scraping,github,email,ssh,ionos",
+          "ALLOWED_DIRECTORIES": "d:/,c:/Users/donApart,f:/"
+        }
+      },
+      "demo": {
+        "command": "python",
+        "args": ["d:/Guido_mcp/mcp-agent-workbench/servers/demo-server/server.py"]
+      },
+      "filesystem": {
+        "command": "python",
+        "args": ["d:/Guido_mcp/mcp-agent-workbench/servers/filesystem-server/server.py"],
+        "env": {
+          "ALLOWED_DIRECTORIES": "d:/,c:/Users/donApart,f:/"
+        }
+      },
+      "git": {
+        "command": "python",
+        "args": ["d:/Guido_mcp/mcp-agent-workbench/servers/git-server/server.py"]
+      },
+      "project-manager": {
+        "command": "python",
+        "args": ["d:/Guido_mcp/mcp-agent-workbench/servers/project-manager-server/server.py"]
+      },
+      "flutter": {
+        "command": "python",
+        "args": ["d:/Guido_mcp/mcp-agent-workbench/servers/flutter-server/server.py"]
+      },
+      "ollama": {
+        "command": "python",
+        "args": ["d:/Guido_mcp/mcp-agent-workbench/servers/ollama-server/server.py"]
+      },
+      "docker": {
+        "command": "python",
+        "args": ["d:/Guido_mcp/mcp-agent-workbench/servers/docker-server/server.py"]
+      },
+      "docker-remote": {
+        "command": "python",
+        "args": ["d:/Guido_mcp/mcp-agent-workbench/servers/docker-remote-server/server.py"],
+        "env": {
+          "DOCKER_HOST": "tcp://192.168.0.27:2375"
+        }
+      },
+      "database": {
+        "command": "python",
+        "args": ["d:/Guido_mcp/mcp-agent-workbench/servers/database-server/server.py"]
+      },
+      "github": {
+        "command": "python",
+        "args": ["d:/Guido_mcp/mcp-agent-workbench/servers/github-server/server.py"]
+      },
+      "web-search": {
+        "command": "python",
+        "args": ["d:/Guido_mcp/mcp-agent-workbench/servers/web-search-server/server.py"]
+      },
+      "web-scraping": {
+        "command": "python",
+        "args": ["d:/Guido_mcp/mcp-agent-workbench/servers/web-scraping-server/server.py"]
+      },
+      "email": {
+        "command": "python",
+        "args": ["d:/Guido_mcp/mcp-agent-workbench/servers/email-server/server.py"]
+      },
+      "ionos": {
+        "command": "python",
+        "args": ["d:/Guido_mcp/mcp-agent-workbench/servers/ionos-server/server.py"]
+      },
+      "ssh": {
+        "command": "python",
+        "args": ["d:/Guido_mcp/mcp-agent-workbench/servers/ssh-server/server.py"]
+      }
+    }
+  },
+  "chat.mcp.enabled": true,
+  "chat.mcp.autostart": "always"
+}

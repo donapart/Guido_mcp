@@ -1,0 +1,76 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🤖 MCP Agent starten",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dev", "${input:agentPrompt}"],
+      "options": {
+        "cwd": "${workspaceFolder}/agent"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "type": "npm",
+      "script": "compile",
+      "path": "extension",
+      "problemMatcher": "$tsc",
+      "label": "npm: compile - extension",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "type": "npm",
+      "script": "watch",
+      "path": "extension",
+      "problemMatcher": "$tsc-watch",
+      "label": "npm: watch - extension",
+      "isBackground": true
+    },
+    {
+      "type": "npm",
+      "script": "build",
+      "path": "agent",
+      "problemMatcher": "$tsc",
+      "label": "npm: build - agent"
+    },
+    {
+      "type": "npm",
+      "script": "dev",
+      "path": "agent",
+      "problemMatcher": [],
+      "label": "npm: dev - agent"
+    },
+    {
+      "label": "Start Demo Server",
+      "type": "shell",
+      "command": "python",
+      "args": ["server.py"],
+      "options": {
+        "cwd": "${workspaceFolder}/servers/demo-server"
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "agentPrompt",
+      "type": "promptString",
+      "description": "Was soll der MCP Agent tun?",
+      "default": "Zeige mir alle verfügbaren Tools"
+    }
+  ]
+}

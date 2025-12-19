@@ -1,0 +1,99 @@
+{
+  "servers": {
+    "demo": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["../servers/demo-server/server.py"],
+      "description": "Demo-Server mit Basis-Tools (Rechnen, Zeit, Text-Analyse)"
+    },
+    "filesystem": {
+      "type": "stdio", 
+      "command": "python",
+      "args": ["../servers/filesystem-server/server.py"],
+      "description": "Dateisystem-Operationen (Lesen, Schreiben, Suchen)"
+    },
+    "github": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["../servers/github-server/server.py"],
+      "description": "GitHub Repository-Operationen (Issues, PRs, Repos)"
+    },
+    "database": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["../servers/database-server/server.py"],
+      "description": "SQL-Datenbank-Operationen (PostgreSQL, MySQL, SQLite, MSSQL)"
+    },
+    "docker": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["../servers/docker-server/server.py"],
+      "description": "Docker-Operationen lokal (Container, Images, Volumes)"
+    },
+    "docker-remote": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["../servers/docker-remote-server/server.py"],
+      "description": "Docker Remote-Host (192.168.0.27)"
+    },
+    "web-scraping": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["../servers/web-scraping-server/server.py"],
+      "description": "Web-Scraping (HTML, Text, Links, Tabellen extrahieren)"
+    },
+    "web-search": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["../servers/web-search-server/server.py"],
+      "description": "Web-Suche (DuckDuckGo - Web, News, Bilder, Videos)"
+    },
+    "email": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["../servers/email-server/server.py"],
+      "description": "Email-Operationen (SMTP senden, IMAP lesen)"
+    },
+    "ionos": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["../servers/ionos-server/server.py"],
+      "description": "IONOS Hosting-Verwaltung (DNS, Domains, SSL)"
+    },
+    "flutter": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["../servers/flutter-server/server.py"],
+      "description": "Flutter/Dart Entwicklung (Build, Test, Analyze)"
+    },
+    "ollama": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["../servers/ollama-server/server.py"],
+      "description": "Ollama LLM (Chat, Embeddings, Modell-Verwaltung)"
+    },
+    "git": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["../servers/git-server/server.py"],
+      "description": "Git-Verwaltung (Repos, Branches, Commits, Diffs)"
+    },
+    "project-manager": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["../servers/project-manager-server/server.py"],
+      "description": "Projekt-Übersicht (Alle D:\\ Projekte scannen und verwalten)"
+    },
+    "ssh": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["../servers/ssh-server/server.py"],
+      "description": "SSH Remote-Server (Befehle, Dateien, Logs)"
+    }
+  },
+  "defaults": {
+    "activeServers": ["demo", "filesystem", "project-manager", "git", "flutter", "ollama"],
+    "timeout": 30000,
+    "maxRetries": 3
+  }
+}
