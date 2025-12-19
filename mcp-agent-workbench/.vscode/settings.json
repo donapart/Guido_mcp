@@ -1,15 +1,33 @@
 {
   "mcp": {
     "servers": {
-      "workbench": {
-        "command": "python",
-        "args": ["d:/Guido_mcp/mcp-agent-workbench/mcp-bridge-server/server.py"],
+      "guido-mcp-bridge": {
+        "command": "py",
+        "args": [
+          "-3.11",
+          "d:/Guido_mcp/mcp-agent-workbench/mcp-bridge-server/server.py"
+        ],
         "env": {
-          "MCP_BRIDGE_SERVERS": "demo,filesystem,git,project-manager,flutter,ollama"
+          "MCP_BRIDGE_SERVERS": "demo,filesystem,git,project-manager,flutter,ollama,docker,docker-remote,database,github,web-search,web-scraping,email,ionos,ssh",
+          "MCP_LOAD_DOTENV": "1",
+          "MCP_CHECK_RUNTIME": "1"
         }
       }
     }
   },
   "mcpAgent.provider": "openai",
-  "mcpAgent.activeServers": ["demo", "filesystem", "git", "project-manager"]
+  "mcpAgent.activeServers": [
+    "demo",
+    "filesystem",
+    "git",
+    "project-manager",
+    "flutter",
+    "ollama",
+    "docker",
+    "database",
+    "github",
+    "web-search",
+    "email",
+    "ssh"
+  ]
 }

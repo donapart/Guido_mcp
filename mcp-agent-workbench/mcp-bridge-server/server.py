@@ -1020,16 +1020,15 @@ ollama, project-manager, demo
 # SERVER-START
 # ============================================================
 
-async def main():
-    """Hauptfunktion - Server mit Lazy Loading starten"""
-    await state.initialize()
-    print("[Bridge] 🚀 Guido MCP Bridge gestartet (Dynamic Loading)", file=sys.stderr)
-    print(f"[Bridge] 📊 {len(state.connected_servers)} Server vorab verbunden", file=sys.stderr)
-    try:
-        await mcp.run_async()
-    finally:
-        await state.shutdown()
-
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    import sys
+    import io
+    
+    # Fix für Windows-Konsole und Unicode
+    if sys.platform == "win32":
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+    
+    #  Server starten (stdio-Modus für MCP-Clients)
+    # Keine Print-Ausgaben bei stdio, da diese das Protokoll stören
+    mcp.run()
